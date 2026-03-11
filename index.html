@@ -274,6 +274,20 @@
     .winning-source a:hover {
       text-decoration: underline;
     }
+
+    .save-status {
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      font-size: 0.8125rem;
+      color: var(--apple-text-secondary);
+      margin-top: -1rem;
+      margin-bottom: 1rem;
+      min-height: 1.25rem;
+    }
+
+    .save-status.ok { color: #15803d; }
+    .save-status.err { color: #dc2626; }
   </style>
 </head>
 <body>
@@ -294,6 +308,8 @@
       <button type="button" id="generate">번호 뽑기</button>
     </div>
 
+    <p class="save-status" id="save-status" aria-live="polite"></p>
+
     <div class="results" id="results"></div>
 
     <footer>
@@ -309,7 +325,50 @@
     </div>
   </aside>
 
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    // Supabase 설정: Vercel 환경변수 SUPABASE_URL, SUPABASE_ANON_KEY (빌드 시 config.js에 주입)
+    var env = (typeof window !== 'undefined' && window.__ENV) ? window.__ENV : {};
+    const SUPABASE_URL = env.SUPABASE_URL || '';
+    const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY || '';
+
+    var supabaseClient = null;
+    (function () {
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+      var lib = typeof supabase !== 'undefined' ? supabase : (typeof window !== 'undefined' ? window.supabase : null);
+      if (lib && typeof lib.createClient === 'function') {
+        supabaseClient = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    })();
+
+    function setSaveStatus(msg, type) {
+      const el = document.getElementById('save-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'save-status' + (type ? ' ' + type : '');
+    }
+
+    async function saveDrawsToSupabase(draws) {
+      if (!supabaseClient || !draws.length) return;
+      setSaveStatus('저장 중…', '');
+      const rows = draws.map(function (d, i) {
+        return {
+          main_numbers: d.main,
+          bonus_number: d.bonus,
+          set_index: i + 1
+        };
+      });
+      try {
+        const { error } = await supabaseClient.from('lotto_draws').insert(rows);
+        if (error) throw error;
+        setSaveStatus('Supabase에 저장했습니다.', 'ok');
+      } catch (e) {
+        console.error(e);
+        setSaveStatus('저장 실패: ' + (e.message || String(e)), 'err');
+      }
+    }
+
     // 2026년 로또 1등 당첨번호 (동행복권 공식 발표 기준, 필요 시 https://www.dhlottery.co.kr 에서 최신 회차 확인)
     const WINNING_2026 = [
       { round: 1112, date: '2026.03.07', numbers: [3, 12, 18, 25, 34, 41], bonus: 7 },
@@ -348,9 +407,11 @@
       const setsCount = parseInt(document.getElementById('sets').value, 10);
       const container = document.getElementById('results');
       container.innerHTML = '';
+      const draws = [];
 
       for (let i = 0; i < setsCount; i++) {
         const { main, bonus } = generateSet();
+        draws.push({ main: main, bonus: bonus });
         const setEl = document.createElement('div');
         setEl.className = 'set';
         setEl.innerHTML = `<span class="set-label">${i + 1}번째 추천</span>`;
@@ -367,6 +428,12 @@
         bonusBall.textContent = bonus;
         setEl.appendChild(bonusBall);
         container.appendChild(setEl);
+      }
+
+      if (supabaseClient && draws.length) {
+        saveDrawsToSupabase(draws);
+      } else if (!supabaseClient && draws.length) {
+        setSaveStatus('Supabase URL/키를 설정하면 추첨 번호가 저장됩니다.', '');
       }
     }
 

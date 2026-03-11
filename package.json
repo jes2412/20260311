@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "로또 번호 추천 웹 서비스",
   "scripts": {
-    "start": "npx serve . -l 3000"
+    "start": "npx serve . -l 3000",
+    "build": "node scripts/inject-env.js",
+    "vercel-build": "npm run build"
   }
 }

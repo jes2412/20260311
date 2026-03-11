@@ -32,6 +32,27 @@ git push origin main
 
 최초 1회만 원격이 없다면: `git remote add origin https://github.com/jes2412/20260311.git`
 
+## Supabase에 추첨 번호 저장
+
+1. [Supabase](https://supabase.com)에서 프로젝트 생성
+2. **SQL Editor**에서 `supabase-schema.sql` 내용 실행 (테이블 `lotto_draws` + RLS)
+3. **Project Settings → API**에서 **Project URL**, **anon public** key 복사
+4. **Vercel 배포 시** 대시보드 → **Settings → Environment Variables**에 다음을 추가 (Production / Preview 모두):
+   - `SUPABASE_URL` = Supabase Project URL
+   - `SUPABASE_ANON_KEY` = anon public key  
+   저장 후 **Redeploy** 하면 빌드 시 `config.js`에 주입됩니다.
+5. **번호 뽑기** 시 자동으로 해당 세트들이 `lotto_draws`에 insert 됩니다.
+
+로컬에서 환경변수 없이 쓰려면 `config.js`는 기본 빈 값이며, 로컬에서 주입하려면 빌드 전에:
+
+```bash
+set SUPABASE_URL=https://xxx.supabase.co
+set SUPABASE_ANON_KEY=eyJ...
+npm run build
+```
+
+(`config.js`가 덮어써짐. Windows PowerShell은 `$env:SUPABASE_URL="..."` 형식)
+
 ## 참고
 
 - 참고용이며 당첨을 보장하지 않습니다.
