@@ -343,11 +343,11 @@
     async function saveDrawsToSupabase(draws) {
       if (!draws.length) return;
       if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-        setSaveStatus('Supabase URL/키 없음 — Vercel 환경변수·빌드·config.js 확인', 'err');
+        setSaveStatus('Supabase URL/키 없음 — Vercel 환경변수 설정 후 Redeploy', 'err');
         return;
       }
       setSaveStatus('저장 중…', '');
-      const rows = draws.map(function (d, i) {
+      var rows = draws.map(function (d, i) {
         return {
           main_numbers: d.main,
           bonus_number: d.bonus,
@@ -360,20 +360,29 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
             'Prefer': 'return=minimal'
           },
           body: JSON.stringify(rows)
         });
+        var text = await res.text();
         if (!res.ok) {
-          var text = await res.text();
-          throw new Error(res.status + ' ' + res.statusText + (text ? ' — ' + text : ''));
+          var msg = text;
+          try {
+            var j = JSON.parse(text);
+            if (j.message) msg = j.message;
+            if (j.code) msg = '[' + j.code + '] ' + msg;
+          } catch (e) {}
+          setSaveStatus('저장 실패: ' + res.status + ' — ' + msg, 'err');
+          console.error('Supabase insert', res.status, text);
+          return;
         }
         setSaveStatus('Supabase에 저장했습니다.', 'ok');
       } catch (e) {
-        console.error('Supabase insert:', e);
         setSaveStatus('저장 실패: ' + (e.message || String(e)), 'err');
+        console.error('Supabase insert:', e);
       }
     }
 
@@ -458,6 +467,10 @@
     document.getElementById('generate').addEventListener('click', render);
     render();
     renderWinning();
+    // 페이지 로드 시 Supabase 연결 상태 표시 (디버깅용)
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      setSaveStatus('Supabase 미연결 — Vercel에 SUPABASE_URL, SUPABASE_ANON_KEY 설정 후 Redeploy', 'err');
+    }
   </script>
 </body>
 </html>
