@@ -327,9 +327,15 @@
 
   <script src="config.js"></script>
   <script>
-    // Supabase 설정: Vercel 환경변수 SUPABASE_URL, SUPABASE_ANON_KEY (빌드 시 config.js에 주입)
-    // insert는 PostgREST(fetch)로만 수행 — @supabase/supabase-js CDN이 createClient를 노출하지 않는 경우가 많아 REST로 통일
+    (async function () {
+    // Supabase 설정: config.js(빌드 주입) 또는 /api/config (Vercel 런타임 환경변수)
     var env = (typeof window !== 'undefined' && window.__ENV) ? window.__ENV : {};
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      try {
+        var r = await fetch('/api/config');
+        if (r.ok) { env = await r.json(); window.__ENV = env; }
+      } catch (e) { console.warn('api/config fetch:', e); }
+    }
     var SUPABASE_URL = (env.SUPABASE_URL || '').replace(/\/$/, '');
     var SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY || '';
 
@@ -467,10 +473,10 @@
     document.getElementById('generate').addEventListener('click', render);
     render();
     renderWinning();
-    // 페이지 로드 시 Supabase 연결 상태 표시 (디버깅용)
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setSaveStatus('Supabase 미연결 — Vercel에 SUPABASE_URL, SUPABASE_ANON_KEY 설정 후 Redeploy', 'err');
+      setSaveStatus('Supabase 미연결 — Vercel 환경변수 SUPABASE_URL, SUPABASE_ANON_KEY 설정 후 Redeploy', 'err');
     }
+    })();
   </script>
 </body>
 </html>

@@ -40,7 +40,7 @@ git push origin main
 4. **Vercel 배포 시** 대시보드 → **Settings → Environment Variables**에 다음을 추가 (Production / Preview 모두):
    - `SUPABASE_URL` = Supabase Project URL
    - `SUPABASE_ANON_KEY` = anon public key  
-   저장 후 **Redeploy** 하면 빌드 시 `config.js`에 주입됩니다.
+   저장 후 **Redeploy** 하면 됩니다. 페이지 로드 시 `api/config`가 환경변수를 내려주어 빌드 없이 동작합니다.
 5. **번호 뽑기** 시 자동으로 해당 세트들이 `lotto_draws`에 insert 됩니다.
 
 로컬에서 환경변수 없이 쓰려면 `config.js`는 기본 빈 값이며, 로컬에서 주입하려면 빌드 전에:
